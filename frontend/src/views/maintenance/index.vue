@@ -18,6 +18,34 @@
       </article>
     </div>
 
+    <section class="todo-panel">
+      <h3>安全措施签发结论待办</h3>
+      <p class="muted-text">安全措施票经本队监护人签发后落入此列表，票终结后自动闭环；同一票只保留一条。</p>
+      <table class="data-table" v-if="todos.length">
+        <thead>
+          <tr>
+            <th>措施编号</th>
+            <th>涉及设备</th>
+            <th>归属队组</th>
+            <th>签发人</th>
+            <th>待办事项</th>
+            <th>状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="todo in todos" :key="String(todo.id)">
+            <td>{{ todo['措施编号'] }}</td>
+            <td>{{ todo['涉及设备'] }}</td>
+            <td>{{ todo['归属队组'] }}</td>
+            <td>{{ todo['签发人'] }}</td>
+            <td>{{ todo.title }}</td>
+            <td>{{ todo['状态'] }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else class="empty-state">暂无待落实的安全措施签发结论</p>
+    </section>
+
     <form class="filter-bar" @submit.prevent="reload">
       <label v-for="field in filterFields" :key="field" class="filter-item">
         <span>{{ field }}</span>
@@ -80,6 +108,19 @@ const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
+const todos = ref<Row[]>([])
+
+async function loadTodos() {
+  try {
+    const response = await request('/api/maintenance/todos?only_open=true')
+    if (response.ok) {
+      const payload = await response.json()
+      todos.value = payload.items ?? []
+    }
+  } catch {
+    todos.value = []
+  }
+}
 
 function resetFilters() {
   filters.value = {}
@@ -126,5 +167,26 @@ async function reload() {
   }
 }
 
-onMounted(reload)
+onMounted(() => {
+  void reload()
+  void loadTodos()
+})
 </script>
+
+<style scoped>
+.todo-panel {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+.todo-panel h3 {
+  margin: 0 0 4px;
+}
+.muted-text {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0 0 10px;
+}
+</style>

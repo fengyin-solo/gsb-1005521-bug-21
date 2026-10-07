@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 
 from app.schemas import ActionResult, EntryPayload, PageResult
+from app.services import todos
 from app.services.maintenance import MaintenanceService
 
 router = APIRouter(prefix="/api/maintenance", tags=["检修计划"])
@@ -28,6 +29,17 @@ def list_entries(
         raise HTTPException(status_code=400, detail="每页最多 200 条，请缩小分页范围")
     items, total = service.list_entries(keyword=keyword, status=status, page=page, size=size)
     return PageResult(items=items, total=total, page=page, size=size)
+
+
+@router.get("/todos")
+def maintenance_todos(
+    team: str | None = Query(default=None, description="按归属队组过滤"),
+    only_open: bool = Query(default=True, description="只看待落实项"),
+    keyword: str | None = Query(default=None, description="按措施编号或标题检索"),
+) -> dict[str, Any]:
+    """检修计划待办：安全措施票签发后的结论落到这里；票终结后自动闭环。"""
+    items = todos.list_todos(team=team, only_open=only_open, keyword=keyword)
+    return {"total": len(items), "items": items}
 
 
 @router.get("/{entry_id}", response_model=dict)

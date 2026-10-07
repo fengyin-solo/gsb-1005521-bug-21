@@ -22,7 +22,8 @@ from app.routers import spare_parts as router_spare_parts
 from app.routers import alarm as router_alarm
 from app.routers import dispatch as router_dispatch
 from app.routers import safety as router_safety
+from app.routers import identity as router_identity
 from app.routers import contract as router_contract
 from app.routers import report as router_report
 
-ROUTERS = [router_pv_array, router_inverter, router_combiner_box, router_transformer, router_energy_storage, router_boosting_station, router_meter, router_environment, router_cleaning, router_patrol, router_defect, router_maintenance, router_spare_parts, router_alarm, router_dispatch, router_safety, router_contract, router_report]
+ROUTERS = [router_pv_array, router_inverter, router_combiner_box, router_transformer, router_energy_storage, router_boosting_station, router_meter, router_environment, router_cleaning, router_patrol, router_defect, router_maintenance, router_spare_parts, router_alarm, router_dispatch, router_safety, router_identity, router_contract, router_report]
