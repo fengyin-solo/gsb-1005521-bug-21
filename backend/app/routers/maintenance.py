@@ -3,10 +3,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.identity import Identity, current_identity
 from app.schemas import ActionResult, EntryPayload, PageResult
 from app.services.maintenance import MaintenanceService
+from app.services.maintenance_todos import todo_service
 
 router = APIRouter(prefix="/api/maintenance", tags=["检修计划"])
 
@@ -14,6 +16,25 @@ service = MaintenanceService()
 
 LIST_FIELDS = ["计划编号", "检修设备", "检修类别", "计划开始", "计划结束", "责任人", "安全措施", "计划状态"]
 STATUSES = ["待审批", "已批复", "执行中", "已完工"]
+
+
+@router.get("/todos", response_model=PageResult[dict])
+def list_todos(
+    status: str | None = Query(default="待办", description="默认只看待办，传空可查全部"),
+    keyword: str | None = Query(default=None, description="按措施票编号或涉及设备检索"),
+    only_mine: bool = Query(default=True, description="只看本队组的待办"),
+    page: int = 1,
+    size: int = 20,
+    identity: Identity = Depends(current_identity),
+) -> PageResult[dict]:
+    """安全措施票签发结论生成的检修待办；外队组账号在这里看不到别队组的待办。"""
+    if size > 200:
+        raise HTTPException(status_code=400, detail="每页最多 200 条，请缩小分页范围")
+    team = identity.team if only_mine else None
+    items, total = todo_service.list_todos(
+        team=team, status=status or None, keyword=keyword, page=page, size=size
+    )
+    return PageResult(items=items, total=total, page=page, size=size)
 
 
 @router.get("", response_model=PageResult[dict])

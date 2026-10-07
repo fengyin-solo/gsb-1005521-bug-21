@@ -85,3 +85,7 @@ desktop.ini
 *.db
 *.pid
 *.seed
+
+# ===== 本地数据落库文件（状态持久化，勿提交）=====
+backend/data/*
+!backend/data/.gitkeep

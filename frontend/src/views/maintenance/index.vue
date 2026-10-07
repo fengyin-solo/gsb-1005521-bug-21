@@ -18,6 +18,42 @@
       </article>
     </div>
 
+    <section class="todo-block">
+      <header class="todo-head">
+        <h3>安全措施签发待办</h3>
+        <span class="muted-text">安全措施票签发后，签发结论自动落到这里（仅显示 {{ store.team }} 的待办）</span>
+        <button class="btn ghost" type="button" @click="reloadTodos">刷新待办</button>
+      </header>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>措施票编号</th>
+            <th>涉及设备</th>
+            <th>关联检修计划</th>
+            <th>签发结论</th>
+            <th>签发人</th>
+            <th>登记日期</th>
+            <th>待办状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="todo in todos" :key="String(todo.id)">
+            <td>{{ todo['来源票编号'] ?? '—' }}</td>
+            <td>{{ todo['涉及设备'] ?? '—' }}</td>
+            <td>{{ todo['关联计划编号'] ?? '未匹配到计划' }}</td>
+            <td>{{ todo['签发结论'] ?? '—' }}</td>
+            <td>{{ todo['签发人'] ?? '—' }}</td>
+            <td>{{ todo['登记日期'] ?? '—' }}</td>
+            <td>{{ todo['status'] ?? '—' }}</td>
+          </tr>
+          <tr v-if="!todos.length">
+            <td colspan="7" class="empty-state">暂无待处理的安全措施签发待办</td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-if="todoError" class="error-text">{{ todoError }}</p>
+    </section>
+
     <form class="filter-bar" @submit.prevent="reload">
       <label v-for="field in filterFields" :key="field" class="filter-item">
         <span>{{ field }}</span>
@@ -66,8 +102,11 @@
 import { onMounted, ref } from 'vue'
 
 import { request } from '@/api/client'
+import { useSessionStore } from '@/stores/session'
 
 type Row = Record<string, string | number | null>
+
+const store = useSessionStore()
 
 const ENDPOINT = '/api/maintenance'
 const columns = ["计划编号", "检修设备", "检修类别", "计划开始", "计划结束", "责任人", "安全措施", "计划状态"]
@@ -80,6 +119,23 @@ const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
 const filterFields = columns.slice(0, 3)
+
+const todos = ref<Row[]>([])
+const todoError = ref('')
+
+async function reloadTodos() {
+  todoError.value = ''
+  try {
+    const response = await request('/api/maintenance/todos?status=待办')
+    if (!response.ok) {
+      throw new Error('安全措施签发待办读取失败')
+    }
+    const payload = await response.json()
+    todos.value = payload.items ?? []
+  } catch (error) {
+    todoError.value = error instanceof Error ? error.message : '安全措施签发待办读取失败'
+  }
+}
 
 function resetFilters() {
   filters.value = {}
@@ -99,7 +155,7 @@ async function runAction(action: string, row: Row) {
   try {
     const response = await request(`${ENDPOINT}/${row.id}/actions`, {
       method: 'POST',
-      body: JSON.stringify({ action }),
+      body: JSON.stringify({ values: { action } }),
     })
     if (!response.ok) {
       throw new Error('检修计划动作未生效，请稍后重试')
@@ -126,5 +182,8 @@ async function reload() {
   }
 }
 
-onMounted(reload)
+onMounted(() => {
+  void reload()
+  void reloadTodos()
+})
 </script>
